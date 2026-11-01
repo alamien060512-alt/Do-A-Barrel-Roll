@@ -1,5 +1,3 @@
-// The camera's roll, multiplied into the spin the game already keeps for the
-// nausea and portal wobble.
 fn barrel_roll_camera(game: &crate::game::Game<'_>, value: glam::Mat4) -> glam::Mat4 {
     use crate::game::barrel_roll as barrel_roll;
     if !game.native_on(barrel_roll::ID) {
