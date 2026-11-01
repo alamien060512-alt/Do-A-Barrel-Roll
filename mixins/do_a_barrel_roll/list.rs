@@ -1,4 +1,3 @@
-// Do A Barrel Roll's row in Options > Mods.
 fn barrel_roll_listed(mods: &mut Vec<crate::game::native_hooks::NativeMod>) {
     use crate::game::barrel_roll as barrel_roll;
     mods.push(crate::game::native_hooks::NativeMod {
