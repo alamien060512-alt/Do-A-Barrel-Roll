@@ -1,4 +1,3 @@
-// A click on Do A Barrel Roll's settings page: change the setting and keep it.
 fn barrel_roll_click(game: &mut crate::game::Game<'_>, mod_id: &str, button: usize) {
     use crate::game::barrel_roll as barrel_roll;
     if mod_id != barrel_roll::ID {
