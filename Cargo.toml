@@ -1,0 +1,11 @@
+[package]
+name = "horizon-mod-do-a-barrel-roll"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "Do A Barrel Roll, a Horizon native mod: fly the elytra like a plane. The mouse rolls and pitches, a banked wing turns you, A and D yaw."
+
+# The mod's logic and its tests: the same file the bundle adds to the game.
+[lib]
+path = "mixins/do_a_barrel_roll/runtime.rs"
