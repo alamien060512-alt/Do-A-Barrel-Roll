@@ -1,5 +1,3 @@
-// Every frame: while gliding, apply the banked turn and the A / D yaw; out of
-// flight, let the roll ease back to level.
 fn barrel_roll_frame(game: &mut crate::game::Game<'_>, elapsed: std::time::Duration) {
     use crate::game::barrel_roll as barrel_roll;
     if !game.native_on(barrel_roll::ID) {
