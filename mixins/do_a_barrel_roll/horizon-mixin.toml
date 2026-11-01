@@ -3,20 +3,15 @@ id = "do_a_barrel_roll"
 version = "0.1.0"
 priority = 100
 
-# The commit it was tested on. The turn and camera hooks below target the game's
-# own functions (not only the documented hook points), so they build on this
-# commit and need re-checking on a newer one.
 [compatibility]
 horizon_revision = "c1f4a7c1968b035596d0cae9985fa154cb5bda41"
 
-# runtime.rs becomes the module crate::game::barrel_roll.
 [[module]]
 id = "runtime"
 file = "crates/horizon-client/src/game.rs"
 name = "barrel_roll"
 source = "runtime.rs"
 
-# Every frame: ease the roll, apply the banked turn and A / D yaw.
 [[injection]]
 id = "frame"
 kind = "HEAD"
@@ -27,8 +22,6 @@ bindings = [
   { name = "elapsed", ty = "std::time::Duration", value = "elapsed" },
 ]
 
-# The mouse turns the player: while gliding, sideways movement rolls the wing
-# and only the vertical movement reaches the game's own turn.
 [[injection]]
 id = "turn"
 kind = "HEAD"
@@ -41,8 +34,7 @@ bindings = [
   { name = "yo", ty = "f64", value = "yo" },
 ]
 
-# The camera: the nausea / portal spin matrix gains the roll. The view is
-# bob * spin * rotation, so a turn about the view's own axis is a camera roll.
+
 [[injection]]
 id = "camera"
 kind = "RETURN"
