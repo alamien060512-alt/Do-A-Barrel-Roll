@@ -1,5 +1,3 @@
-// The game turns the player by the mouse (or a pad, or the arrow keys). While
-// gliding, the sideways part rolls the wing and only the vertical part pitches.
 fn barrel_roll_turn(
     game: &mut crate::game::Game<'_>,
     xo: f64,

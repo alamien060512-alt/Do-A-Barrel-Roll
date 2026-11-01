@@ -1,52 +1,25 @@
-// Do A Barrel Roll: flight-simulator controls for elytra flight. An original mod; it
-// shares only the idea with other "roll while gliding" mods.
-//
-// While gliding:
-//   * mouse left/right rolls the camera (the horizon tilts),
-//   * mouse up/down pitches as usual,
-//   * a banked wing turns you: heading changes with the sine of the roll,
-//   * A / D yaw flat, without rolling.
-// On the ground, or out of the elytra, the roll eases back to level.
-//
-// This file is both the mod's Cargo library (its tests) and the module the
-// bundle adds to the game as `game::barrel_roll`. It holds state and arithmetic
-// only; the hooks that connect it to the game are the small files beside it.
 use std::cell::RefCell;
 
-/// The mod's id: its settings folder.
 pub const ID: &str = "do_a_barrel_roll";
 pub const VERSION: &str = "0.1.0";
 pub const DESCRIPTION: &str =
     "Fly the elytra like a plane: the mouse rolls and pitches, a banked wing turns you, A and D yaw.";
 
-/// Degrees of turn per mouse count: the game's own (`Entity.turn`).
 const DEGREES_PER_COUNT: f32 = 0.15;
-/// The roll speeds the settings button cycles through.
 pub const SPEEDS: [f32; 4] = [0.5, 1.0, 1.5, 2.0];
-/// Heading change, degrees per second, at a 90 degree bank.
 const BANK_TURN: f32 = 70.0;
-/// Heading change, degrees per second, while A or D is held.
 const STRAFE_TURN: f32 = 75.0;
-/// How fast a roll returns to level outside flight (per second, exponential).
 const LEVEL_OUT: f32 = 9.0;
-/// Auto-level: degrees per second back toward level once the mouse is still.
 const AUTO_LEVEL: f32 = 55.0;
-/// The mouse counts as still after this long without a roll input (seconds).
 const STILL_AFTER: f32 = 0.25;
-/// Longest frame step the arithmetic trusts (seconds): a hitch is not a spin.
 const MAX_STEP: f32 = 0.1;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Settings {
-    /// Index into `SPEEDS`.
     pub speed: usize,
-    /// A banked wing turns the player.
     pub bank: bool,
-    /// A and D yaw while gliding.
     pub strafe: bool,
-    /// Roll returns to level when the mouse is still.
     pub auto_level: bool,
-    /// Tilt the camera. Off keeps only the controls.
     pub camera: bool,
 }
 
@@ -63,7 +36,6 @@ impl Default for Settings {
 }
 
 impl Settings {
-    /// From the stored values (`get` reads one key); defaults for missing ones.
     pub fn read(get: impl Fn(&str) -> Option<String>) -> Self {
         let d = Self::default();
         let flag = |key: &str, default: bool| {
@@ -84,7 +56,6 @@ impl Settings {
             camera: flag("camera", d.camera),
         }
     }
-    /// The settings page's buttons.
     pub fn labels(&self) -> Vec<String> {
         let on = |b: bool| if b { "ON" } else { "OFF" };
         vec![
@@ -95,7 +66,6 @@ impl Settings {
             format!("Camera roll: {}", on(self.camera)),
         ]
     }
-    /// A click on button `i` of `labels`.
     pub fn click(&mut self, i: usize) {
         match i {
             0 => self.speed = (self.speed + 1) % SPEEDS.len(),
@@ -106,7 +76,6 @@ impl Settings {
             _ => {}
         }
     }
-    /// What to store, key by key.
     pub fn stored(&self) -> [(&'static str, String); 5] {
         let flag = |b: bool| if b { "true" } else { "false" }.to_owned();
         [
@@ -121,13 +90,9 @@ impl Settings {
 
 #[derive(Default)]
 struct State {
-    /// Read on first use, then kept.
     settings: Option<Settings>,
-    /// Bank angle in degrees, -180..180; positive banks right.
     roll: f32,
-    /// Seconds since the last roll input.
     quiet: f32,
-    /// Set while the mod itself turns the player, so its hook lets that through.
     turning: bool,
 }
 
@@ -135,12 +100,10 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
-/// The settings, read once through `get`.
 pub fn settings(get: impl Fn(&str) -> Option<String>) -> Settings {
     STATE.with_borrow_mut(|s| *s.settings.get_or_insert_with(|| Settings::read(get)))
 }
 
-/// Replaces the settings (the settings page changed them).
 pub fn set_settings(settings: Settings) {
     STATE.with_borrow_mut(|s| s.settings = Some(settings));
 }
@@ -150,8 +113,6 @@ fn wrap(degrees: f32) -> f32 {
     if w.is_finite() { w } else { 0.0 }
 }
 
-/// Mouse movement while gliding: `xo` counts of sideways movement roll the
-/// wing. The caller turns pitch itself with the vertical movement.
 pub fn steer(xo: f64) {
     STATE.with_borrow_mut(|s| {
         let speed = SPEEDS[s.settings.unwrap_or_default().speed];
@@ -162,15 +123,11 @@ pub fn steer(xo: f64) {
     });
 }
 
-/// One frame. `gliding`: the player is flying with the elytra and playing.
-/// `strafe`: -1 for A, +1 for D, 0 for neither. Returns the heading change in
-/// degrees (positive turns right) for the caller to apply.
 pub fn step(gliding: bool, seconds: f32, strafe: f32) -> f32 {
     let dt = seconds.clamp(0.0, MAX_STEP);
     STATE.with_borrow_mut(|s| {
         let cfg = s.settings.unwrap_or_default();
         if !gliding {
-            // Ease out of the bank; snap the last sliver so it ends exactly level.
             s.roll *= (-LEVEL_OUT * dt).exp();
             if s.roll.abs() < 0.05 {
                 s.roll = 0.0;
@@ -198,7 +155,6 @@ pub fn step(gliding: bool, seconds: f32, strafe: f32) -> f32 {
     })
 }
 
-/// The camera's roll in degrees: zero when the camera option is off.
 pub fn camera_roll() -> f32 {
     STATE.with_borrow(|s| {
         if s.settings.unwrap_or_default().camera {
@@ -209,7 +165,6 @@ pub fn camera_roll() -> f32 {
     })
 }
 
-/// Forgets the bank (the mod was switched off).
 pub fn reset() {
     STATE.with_borrow_mut(|s| {
         s.roll = 0.0;
@@ -217,20 +172,16 @@ pub fn reset() {
     });
 }
 
-/// Whether the mod itself is turning the player right now.
 pub fn turning() -> bool {
     STATE.with_borrow(|s| s.turning)
 }
 
-/// Runs `turn` with the mod's own turning flagged, so its hook on the game's
-/// turn does not meet it again.
 pub fn own_turn(turn: impl FnOnce()) {
     STATE.with_borrow_mut(|s| s.turning = true);
     turn();
     STATE.with_borrow_mut(|s| s.turning = false);
 }
 
-/// The mouse counts that turn the heading by `degrees`.
 pub fn counts_for(degrees: f32) -> f64 {
     f64::from(degrees / DEGREES_PER_COUNT)
 }
@@ -261,7 +212,6 @@ mod tests {
         let pairs: Vec<(&str, String)> = s.stored().into();
         let back: Vec<(&str, &str)> = pairs.iter().map(|(k, v)| (*k, v.as_str())).collect();
         assert_eq!(Settings::read(stored(&back)), s);
-        // Junk falls back to the default rather than failing.
         let bad = Settings::read(stored(&[("speed", "99"), ("bank", "maybe")]));
         assert_eq!(bad, Settings::default());
     }
@@ -282,9 +232,9 @@ mod tests {
     #[test]
     fn mouse_rolls_and_wraps() {
         fresh(Settings::default());
-        steer(100.0); // 15 degrees at 1.0x
+        steer(100.0);
         assert!((camera_roll() - 15.0).abs() < 1e-4);
-        steer(1200.0); // +180: wraps past the top to -165
+        steer(1200.0);
         assert!((camera_roll() + 165.0).abs() < 1e-3);
         steer(-100.0);
         assert!((camera_roll() + 180.0).abs() < 1e-3 || (camera_roll() - 180.0).abs() < 1e-3);
@@ -293,16 +243,14 @@ mod tests {
     #[test]
     fn bank_turns_toward_the_low_wing() {
         fresh(Settings::default());
-        steer(600.0); // 90 degrees right
+        steer(600.0);
         let right = step(true, 0.05, 0.0);
         assert!(right > 0.0);
         fresh(Settings::default());
         steer(-600.0);
         assert!(step(true, 0.05, 0.0) < 0.0);
-        // Level wings fly straight.
         fresh(Settings::default());
         assert_eq!(step(true, 0.05, 0.0), 0.0);
-        // Inverted (180) does not turn.
         steer(1200.0);
         assert!(step(true, 0.05, 0.0).abs() < 1e-3);
     }
@@ -341,7 +289,7 @@ mod tests {
         });
         steer(400.0);
         let before = camera_roll();
-        step(true, 0.05, 0.0); // within the quiet window: holds
+        step(true, 0.05, 0.0);
         assert_eq!(camera_roll(), before);
         for _ in 0..100 {
             step(true, 0.05, 0.0);

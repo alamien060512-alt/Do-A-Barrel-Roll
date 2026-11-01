@@ -34,7 +34,6 @@ bindings = [
   { name = "yo", ty = "f64", value = "yo" },
 ]
 
-
 [[injection]]
 id = "camera"
 kind = "RETURN"
